@@ -33,7 +33,7 @@ target_link_libraries(c_playground PUBLIC
         yaml-cpp
 )
 target_compile_options(c_playground PRIVATE
-        -fno-exceptions
+        #-fno-exceptions
         -fno-rtti
         -Wall
         -Wextra

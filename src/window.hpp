@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gl_includes.hpp"
-#include "sdl_includes.hpp"
-#include "nocopy.hpp"
+#include "utils/gl_includes.hpp"
+#include "utils/sdl_includes.hpp"
+#include "utils/nocopy.hpp"
 
 #include <cstdio>
 #include <cstdint>
@@ -17,7 +17,7 @@ struct FrameInfo {
 };
 
 struct Window {
-    NO_COPY(Window)
+    NOCOPY(Window)
 
     SDL_Window *sdl_window;
     SDL_GLContext gl_context;

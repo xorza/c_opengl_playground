@@ -1,8 +1,7 @@
 #pragma once
 
-#include "gl_includes.hpp"
-
-#include "nocopy.hpp"
+#include "utils/gl_includes.hpp"
+#include "utils/nocopy.hpp"
 
 #include <cstdint>
 #include <map>
@@ -16,7 +15,7 @@ struct UniformInfo {
 };
 
 struct Renderer {
-    NO_COPY(Renderer)
+    NOCOPY(Renderer)
 
     int shader_program;
     std::map<std::string, UniformInfo> uniforms;
