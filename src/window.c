@@ -1,32 +1,5 @@
-#define GLEW_STATIC 1
+#include "window.h"
 
-#include <GL/glew.h>
-
-#define SDL_MAIN_HANDLED 1
-
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_video.h>
-#include <SDL2/SDL_opengl.h>
-
-#include <stdio.h>
-#include <inttypes.h>
-#include <time.h>
-
-struct Window {
-    SDL_Window *sdl_window;
-    SDL_GLContext gl_context;
-    int width;
-    int height;
-    bool redraw;
-};
-
-struct FrameInfo {
-    uint32_t frame_number;
-
-    struct timespec time;
-    struct timespec delta_time;
-};
 
 int create_window(struct Window *const window) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -139,43 +112,7 @@ void update_frame_info(
     frame_info->time = time_since_start;
     frame_info->delta_time = delta_time;
 
-    printf("Frame number: %u\n", frame_info->frame_number);
-    printf("Time since start: %llu s %lu ns\n", frame_info->time.tv_sec, frame_info->time.tv_nsec);
-    printf("Delta time: %llu s %lu ns\n", frame_info->delta_time.tv_sec, frame_info->delta_time.tv_nsec);
-}
-
-int main(void) {
-    struct Window window;
-    create_window(&window);
-
-    struct FrameInfo frame_info = {
-            .frame_number = 0,
-            .time = {0, 0},
-            .delta_time = {0, 0}
-    };
-
-
-    struct timespec start_time;
-    clock_gettime(CLOCK_REALTIME, &start_time);
-    struct timespec previous_time = start_time;
-
-    while (process_events(&window)) {
-        if (!window.redraw) {
-            continue;
-        }
-
-        window.redraw = false;
-        update_frame_info(&frame_info, start_time);
-
-        glViewport(0, 0, window.width, window.height);
-        glClearColor(0.1f, 0.05f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-
-        SDL_GL_SwapWindow(window.sdl_window);
-    }
-
-    destroy_window(&window);
-
-    return 0;
+//    printf("Frame number: %u\n", frame_info->frame_number);
+//    printf("Time since start: %llu s %lu ns\n", frame_info->time.tv_sec, frame_info->time.tv_nsec);
+//    printf("Delta time: %llu s %lu ns\n", frame_info->delta_time.tv_sec, frame_info->delta_time.tv_nsec);
 }

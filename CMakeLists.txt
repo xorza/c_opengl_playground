@@ -3,7 +3,9 @@ project(c_playground C)
 
 set(CMAKE_C_STANDARD 23)
 
-add_executable(c_playground main.c)
+file(GLOB SRC_FILES "src/*.c")
+
+add_executable(c_playground ${SRC_FILES})
 
 target_include_directories(c_playground PRIVATE
         libs/glew-2.2.0/include
