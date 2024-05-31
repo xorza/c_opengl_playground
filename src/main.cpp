@@ -1,15 +1,16 @@
+#include "main.hpp"
+
 #include "window.hpp"
 #include "renderer.hpp"
 
-#include "gl_includes.hpp"
-#include "sdl_includes.hpp"
+
 
 #include <cstdio>
 #include <cstdint>
 #include <ctime>
 
 
-int main() {
+int run() {
     Window window{};
     create_window(&window);
 
