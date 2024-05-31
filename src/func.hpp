@@ -11,18 +11,20 @@
 #include <cstdint>
 
 
-enum class ArgType : uint8_t {
+using FuncId = uuids::uuid;
+
+enum class FuncArgType : uint8_t {
     In, Out
 };
 
-struct Arg {
+struct FuncArg {
     std::string name;
     uint32_t datatype = 1;
     bool required = true;
-    ArgType type = ArgType::In;
+    FuncArgType type = FuncArgType::In;
 };
 
-struct Event {
+struct FuncEvent {
     std::string name;
 };
 
@@ -32,13 +34,11 @@ enum class FuncBehavior : uint8_t {
 };
 
 struct Func {
-    NOCOPY(Func)
-
-    uuids::uuid id;
+    FuncId id;
     std::string name;
     FuncBehavior behavior = FuncBehavior::Impure;
-    std::vector<Arg> args;
-    std::vector<Event> events;
+    std::vector<FuncArg> args;
+    std::vector<FuncEvent> events;
 
     Func();
 

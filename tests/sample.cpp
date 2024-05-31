@@ -1,4 +1,5 @@
 #include "src/func.hpp"
+#include "src/graph.hpp"
 
 #include <iostream>
 #include <string>
@@ -36,17 +37,31 @@ TEST_CASE("Yaml serialization", "[serialization]") {
     std::cout << "YAML Output:\n" << out.c_str() << std::endl;
 }
 
-
-TEST_CASE("Func serialization", "[serialization]") {
+Func make_func() {
     Func func = Func{};
     func.name = "func1";
-    func.args.push_back(Arg{"arg1", 1, true, ArgType::In});
-    func.args.push_back(Arg{"arg2", 2, false, ArgType::Out});
-    func.events.push_back(Event{"event1"});
-    func.events.push_back(Event{"event2"});
+    func.args.push_back(FuncArg{"arg1", 1, true, FuncArgType::In});
+    func.args.push_back(FuncArg{"arg2", 2, false, FuncArgType::Out});
+    func.events.push_back(FuncEvent{"event1"});
+    func.events.push_back(FuncEvent{"event2"});
+    return func;
+}
+
+TEST_CASE("Func serialization", "[serialization]") {
+    Func func = make_func();
 
     YAML::Emitter out;
     out << func;
+
+    std::cout << "YAML Output:\n" << out.c_str() << std::endl;
+}
+
+TEST_CASE("Node deserialization", "[serialization]") {
+    Func func = make_func();
+    Node node = Node(func);
+
+    YAML::Emitter out;
+    out << node;
 
     std::cout << "YAML Output:\n" << out.c_str() << std::endl;
 }

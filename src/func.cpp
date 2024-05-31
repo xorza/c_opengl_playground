@@ -23,31 +23,14 @@ std::string to_string(const FuncBehavior &func_behavior) {
     assert(false);
 }
 
-std::string to_string(const ArgType &arg_type) {
+std::string to_string(const FuncArgType &arg_type) {
     switch (arg_type) {
-        case ArgType::In:
+        case FuncArgType::In:
             return "In";
-        case ArgType::Out:
+        case FuncArgType::Out:
             return "Out";
     }
     assert(false);
-}
-
-YAML::Emitter &operator<<(YAML::Emitter &out, const Arg &arg) {
-    out << YAML::BeginMap;
-    out << YAML::Key << "name" << YAML::Value << arg.name;
-    out << YAML::Key << "datatype" << YAML::Value << arg.datatype;
-    out << YAML::Key << "required" << YAML::Value << arg.required;
-    out << YAML::Key << "type" << YAML::Value << to_string(arg.type);
-    out << YAML::EndMap;
-    return out;
-}
-
-YAML::Emitter &operator<<(YAML::Emitter &out, const Event &event) {
-    out << YAML::BeginMap;
-    out << YAML::Key << "name" << YAML::Value << event.name;
-    out << YAML::EndMap;
-    return out;
 }
 
 YAML::Emitter &operator<<(YAML::Emitter &out, const Func &func) {
@@ -58,13 +41,20 @@ YAML::Emitter &operator<<(YAML::Emitter &out, const Func &func) {
 
     out << YAML::Key << "args" << YAML::Value << YAML::BeginSeq;
     for (const auto &arg: func.args) {
-        out << arg;
+        out << YAML::BeginMap;
+        out << YAML::Key << "name" << YAML::Value << arg.name;
+        out << YAML::Key << "datatype" << YAML::Value << arg.datatype;
+        out << YAML::Key << "required" << YAML::Value << arg.required;
+        out << YAML::Key << "type" << YAML::Value << to_string(arg.type);
+        out << YAML::EndMap;
     }
     out << YAML::EndSeq;
 
     out << YAML::Key << "events" << YAML::Value << YAML::BeginSeq;
     for (const auto &event: func.events) {
-        out << event;
+        out << YAML::BeginMap;
+        out << YAML::Key << "name" << YAML::Value << event.name;
+        out << YAML::EndMap;
     }
     out << YAML::EndSeq;
 
