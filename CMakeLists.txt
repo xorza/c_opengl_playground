@@ -28,7 +28,6 @@ target_link_libraries(c_playground PRIVATE
         opengl32
         glm
 )
-
 target_compile_options(c_playground PRIVATE
         -fno-exceptions
         -fno-rtti
@@ -45,6 +44,7 @@ target_compile_options(c_playground PRIVATE
         #-Wno-unused-private-field
         -Wno-unused-const-variable
 )
+
 
 # Tests
 include(FetchContent)
