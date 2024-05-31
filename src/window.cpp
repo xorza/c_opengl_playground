@@ -16,6 +16,7 @@ int create_window(Window *const window) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
     window->width = 800;
     window->height = 600;
@@ -32,7 +33,7 @@ int create_window(Window *const window) {
     SDL_GL_MakeCurrent(window->sdl_window, window->gl_context);
     glewInit();
 
-    { // Print OpenGL version and profile
+    {   // Print OpenGL version and profile
         auto version = glGetString(GL_VERSION);
         fprintf(stdout, "OpenGL version: %s\n", version);
 

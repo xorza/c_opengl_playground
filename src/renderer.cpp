@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cassert>
 #include <glm.hpp>
+#include <new>
 
 int create_shader(const char *source, GLenum shader_type) {
     int shader = glCreateShader(shader_type);
@@ -38,9 +39,10 @@ int create_shader_program() {
 
     const char *fragment_shader_source =
             "#version 330 core\n"
+            "uniform vec4 uColor;\n"
             "out vec4 FragColor;\n"
             "void main() {\n"
-            "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+            "   FragColor = uColor;\n"
             "}\n";
 
     int vertex_shader = create_shader(vertex_shader_source, GL_VERTEX_SHADER);
@@ -137,21 +139,27 @@ void render(
         FrameInfo *frame_info
 ) {
     glViewport(0, 0, window->width, window->height);
-    glClearColor(0.1f, 0.05f, 0.1f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
 
     UniformInfo *uniform_info;
 
-    glm::vec4 rect = {100.0f, 100.0f, 200.0f, 200.0f};
+    glm::vec4 rect1 = {50.0f, 50.0f, (float) window->width - 100.0f, (float) window->height - 100.0f};
     uniform_info = &renderer->uniforms.at("uRect");
     assert(uniform_info != nullptr);
-    glProgramUniform4f(renderer->shader_program, uniform_info->location, rect[0], rect[1], rect[2], rect[3]);
+    glProgramUniform4f(renderer->shader_program, uniform_info->location, rect1[0], rect1[1], rect1[2], rect1[3]);
 
     uniform_info = &renderer->uniforms.at("uScreenSize");
     glProgramUniform2f(renderer->shader_program, uniform_info->location, (float) window->width, (float) window->height);
 
+    auto color1 = glm::vec4(0.5f, 0.2f,1.0f,  1.0f);
+    uniform_info = &renderer->uniforms.at("uColor");
+    glProgramUniform4f(renderer->shader_program, uniform_info->location, color1[0], color1[1], color1[2], color1[3]);
+
     glUseProgram(renderer->shader_program);
     glBindVertexArray(renderer->rect_va);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+
 }
