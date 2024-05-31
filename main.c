@@ -10,6 +10,8 @@
 #include <SDL2/SDL_opengl.h>
 
 #include <stdio.h>
+#include <inttypes.h>
+#include <time.h>
 
 struct Window {
     SDL_Window *sdl_window;
@@ -19,7 +21,14 @@ struct Window {
     bool redraw;
 };
 
-struct Window create_window() {
+struct FrameInfo {
+    uint32_t frame_number;
+
+    struct timespec time;
+    struct timespec delta_time;
+};
+
+int create_window(struct Window *const window) {
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -57,8 +66,15 @@ struct Window create_window() {
         }
     }
 
-    struct Window window = {sdl_window, gl_context, width, height, true};
-    return window;
+    *window = (struct Window) {
+            .sdl_window = sdl_window,
+            .gl_context = gl_context,
+            .width = width,
+            .height = height,
+            .redraw = true
+    };
+
+    return 0;
 }
 
 void destroy_window(struct Window *const window) {
@@ -102,8 +118,46 @@ bool process_events(struct Window *const window) {
     return true;
 }
 
+void update_frame_info(
+        struct FrameInfo *const frame_info,
+        const struct timespec start_time
+) {
+    frame_info->frame_number++;
+
+    struct timespec current_time;
+    clock_gettime(CLOCK_REALTIME, &current_time);
+
+    struct timespec time_since_start = {
+            .tv_sec = current_time.tv_sec - start_time.tv_sec,
+            .tv_nsec = current_time.tv_nsec - start_time.tv_nsec
+    };
+    struct timespec delta_time = {
+            .tv_sec = time_since_start.tv_sec - frame_info->time.tv_sec,
+            .tv_nsec = time_since_start.tv_nsec - frame_info->time.tv_nsec
+    };
+
+    frame_info->time = time_since_start;
+    frame_info->delta_time = delta_time;
+
+    printf("Frame number: %u\n", frame_info->frame_number);
+    printf("Time since start: %llu s %lu ns\n", frame_info->time.tv_sec, frame_info->time.tv_nsec);
+    printf("Delta time: %llu s %lu ns\n", frame_info->delta_time.tv_sec, frame_info->delta_time.tv_nsec);
+}
+
 int main(void) {
-    struct Window window = create_window();
+    struct Window window;
+    create_window(&window);
+
+    struct FrameInfo frame_info = {
+            .frame_number = 0,
+            .time = {0, 0},
+            .delta_time = {0, 0}
+    };
+
+
+    struct timespec start_time;
+    clock_gettime(CLOCK_REALTIME, &start_time);
+    struct timespec previous_time = start_time;
 
     while (process_events(&window)) {
         if (!window.redraw) {
@@ -111,9 +165,12 @@ int main(void) {
         }
 
         window.redraw = false;
+        update_frame_info(&frame_info, start_time);
+
         glViewport(0, 0, window.width, window.height);
-        glClearColor(0.1f, 0.05f, 0.1f, 1.01f);
+        glClearColor(0.1f, 0.05f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
 
         SDL_GL_SwapWindow(window.sdl_window);
     }
