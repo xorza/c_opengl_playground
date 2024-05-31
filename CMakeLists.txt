@@ -3,11 +3,16 @@ project(c_playground C)
 
 set(CMAKE_C_STANDARD 23)
 
+
+add_subdirectory(libs/cglm-0.9.4/ EXCLUDE_FROM_ALL)
+
 file(GLOB SRC_FILES "src/*.c")
 
 add_executable(c_playground ${SRC_FILES})
 
 target_include_directories(c_playground PRIVATE
+        libs/include
+        libs/cglm-0.9.4/include
         libs/glew-2.2.0/include
         libs/SDL2-2.30.3/x86_64-w64-mingw32/include
         "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um"
@@ -17,4 +22,9 @@ target_link_directories(c_playground PRIVATE
         libs/glew-2.2.0/lib/Release/x64
         "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/um/x64"
 )
-target_link_libraries(c_playground SDL2 glew32s opengl32)
+target_link_libraries(c_playground PRIVATE
+        SDL2
+        glew32s
+        opengl32
+        cglm_headers
+)
