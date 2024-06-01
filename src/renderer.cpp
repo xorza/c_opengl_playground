@@ -8,7 +8,7 @@
 #include <cassert>
 #include <new>
 
-int create_shader(const char *source, GLenum shader_type) {
+int create_shader1(const char *source, GLenum shader_type) {
     int shader = glCreateShader(shader_type);
     glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
@@ -25,7 +25,10 @@ int create_shader(const char *source, GLenum shader_type) {
     return shader;
 }
 
-int create_shader_program() {
+int create_renderer(Renderer *renderer) {
+    new(renderer) Renderer{};
+
+
     const char *vertex_shader_source = R"glsl(
             #version 420 core
             uniform mat4 uMvp;
@@ -38,7 +41,6 @@ int create_shader_program() {
                gl_Position = uMvp * pos;
             }
     )glsl";
-
     const char *fragment_shader_source = R"glsl(
             #version 420 core
             uniform vec4 uColor;
@@ -49,78 +51,26 @@ int create_shader_program() {
                FragColor = texture(uTexture, texCoord) * uColor;
             }
     )glsl";
-
-    int vertex_shader = create_shader(vertex_shader_source, GL_VERTEX_SHADER);
-    if (vertex_shader == -1) return -1;
-
-    int fragment_shader = create_shader(fragment_shader_source, GL_FRAGMENT_SHADER);
-    if (fragment_shader == -1) return -1;
-
-    int shader_program = glCreateProgram();
-    glAttachShader(shader_program, vertex_shader);
-    glAttachShader(shader_program, fragment_shader);
-    glLinkProgram(shader_program);
-
-    int success = 1;
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-    if (!success) {
-        char info_log[512];
-        glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
-        fprintf(stderr, "Shader program linking failed: %s\n", info_log);
-        return -1;
-    }
-
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-
-    return shader_program;
-}
-
-int create_renderer(struct Renderer *renderer) {
-    new(renderer) Renderer{};
-
-    renderer->shader_program = create_shader_program();
-    if (renderer->shader_program == -1) {
-        return -1;
-    }
-
-    //iterate over all uniforms
-    int uniform_count;
-    glGetProgramiv(renderer->shader_program, GL_ACTIVE_UNIFORMS, &uniform_count);
-    for (int i = 0; i < uniform_count; i++) {
-        UniformInfo uniform_info = {};
-        uniform_info.name.resize(50);
-        int name_length = 0;
-        glGetActiveUniform(
-                renderer->shader_program,
-                i,
-                static_cast<GLsizei>(uniform_info.name.size()),
-                &name_length,
-                &uniform_info.size,
-                &uniform_info.type,
-                uniform_info.name.data()
-        );
-        uniform_info.name.resize(name_length);
-        uniform_info.location = glGetUniformLocation(renderer->shader_program, uniform_info.name.c_str());
-
-        // Add the uniform to the hash table
-        renderer->uniforms[uniform_info.name] = uniform_info;
-    }
+    create_shader(&renderer->vertex_shader, vertex_shader_source, GL_VERTEX_SHADER);
+    Shader fragment_shader1;
+    create_shader(&fragment_shader1, fragment_shader_source, GL_FRAGMENT_SHADER);
+    create_shader_program(&renderer->shader, &renderer->vertex_shader, &fragment_shader1);
 
 
     uint8_t texture_data[] = {
             255, 0, 0, 255,
             0, 255, 0, 255,
-            0, 0, 255, 255,
             255, 255, 0, 255,
+            0, 0, 0, 255,
     };
     glCreateTextures(GL_TEXTURE_2D, 1, &renderer->texture);
-    glTextureStorage2D(renderer->texture, 1, GL_RGB8, 2, 2);
-    glTextureSubImage2D(renderer->texture, 0, 0, 0, 2, 2, GL_RGB, GL_UNSIGNED_BYTE, &texture_data);
+    glTextureStorage2D(renderer->texture, 1, GL_RGBA8, 2, 2);
+    glTextureSubImage2D(renderer->texture, 0, 0, 0, 2, 2, GL_RGBA, GL_UNSIGNED_BYTE, &texture_data);
     glTextureParameteri(renderer->texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(renderer->texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(renderer->texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(renderer->texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 
     struct Vertex {
         GLfloat x, y, z;     // Position
@@ -132,31 +82,26 @@ int create_renderer(struct Renderer *renderer) {
             {1.0f,  -1.0f, 1.0f,  1.0f, 0.0f},
             {1.0f,  1.0f,  1.0f,  1.0f, 1.0f},
             {-1.0f, 1.0f,  1.0f,  0.0f, 1.0f},
-
             // Back face
             {-1.0f, -1.0f, -1.0f, 0.0f, 0.0f},
             {1.0f,  -1.0f, -1.0f, 1.0f, 0.0f},
             {1.0f,  1.0f,  -1.0f, 1.0f, 1.0f},
             {-1.0f, 1.0f,  -1.0f, 0.0f, 1.0f},
-
             // Left face
             {-1.0f, -1.0f, -1.0f, 0.0f, 0.0f},
             {-1.0f, -1.0f, 1.0f,  1.0f, 0.0f},
             {-1.0f, 1.0f,  1.0f,  1.0f, 1.0f},
             {-1.0f, 1.0f,  -1.0f, 0.0f, 1.0f},
-
             // Right face
             {1.0f,  -1.0f, -1.0f, 0.0f, 0.0f},
             {1.0f,  -1.0f, 1.0f,  1.0f, 0.0f},
             {1.0f,  1.0f,  1.0f,  1.0f, 1.0f},
             {1.0f,  1.0f,  -1.0f, 0.0f, 1.0f},
-
             // Top face
             {-1.0f, 1.0f,  -1.0f, 0.0f, 0.0f},
             {-1.0f, 1.0f,  1.0f,  1.0f, 0.0f},
             {1.0f,  1.0f,  1.0f,  1.0f, 1.0f},
             {1.0f,  1.0f,  -1.0f, 0.0f, 1.0f},
-
             // Bottom face
             {-1.0f, -1.0f, -1.0f, 0.0f, 0.0f},
             {-1.0f, -1.0f, 1.0f,  1.0f, 0.0f},
@@ -164,55 +109,27 @@ int create_renderer(struct Renderer *renderer) {
             {1.0f,  -1.0f, -1.0f, 0.0f, 1.0f},
     };
 
-    GLuint indices[] = {
-            // Front face
+    uint16_t indices[] = {
             0, 1, 2, 2, 3, 0,
-            // Back face
             6, 5, 4, 4, 7, 6,
-            // Left face
             8, 9, 10, 10, 11, 8,
-            // Right face
             14, 13, 12, 12, 15, 14,
-            // Top face
             16, 17, 18, 18, 19, 16,
-            // Bottom face
             22, 21, 20, 20, 23, 22,
     };
 
-    GLuint VBO, EBO;
-    // Generate and bind the Vertex Array Object (VAO)
-    glGenVertexArrays(1, &renderer->cube_va);
-    glBindVertexArray(renderer->cube_va);
+    create_vao(&renderer->vao);
+    renderer->vao.attach_vbo(vertices, sizeof(vertices) / sizeof(Vertex));
+    renderer->vao.attach_ebo(indices, sizeof(indices) / sizeof(uint16_t));
+    renderer->vao.enable_attrib(0, 3, GL_FLOAT, offsetof(Vertex, x));
+    renderer->vao.enable_attrib(1, 2, GL_FLOAT, offsetof(Vertex, u));
 
-    // Generate and bind the Vertex Buffer Object (VBO)
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Generate and bind the Element Buffer Object (EBO)
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // Define the vertex position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    // Define the texture coordinate attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) (3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-
-    // Unbind the VAO
-    glBindVertexArray(0);
 
     return 0;
 }
 
 
-Renderer::~Renderer() {
-    glDeleteProgram(this->shader_program);
-    glDeleteVertexArrays(1, &this->cube_va);
-}
+Renderer::~Renderer() = default;
 
 
 void render(
@@ -227,8 +144,6 @@ void render(
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-
-    UniformInfo *uniform_info;
 
     auto mvp =
             glm::perspective(
@@ -249,23 +164,17 @@ void render(
                     glm::normalize(glm::vec3(0.1f, glm::clamp(frame_info->time * 0.1f, 0.0f, 1.0f), 0.0f))
             );
 
-    uniform_info = &renderer->uniforms.at("uMvp");
-    assert(uniform_info != nullptr);
-    glProgramUniformMatrix4fv(renderer->shader_program, uniform_info->location, 1, false, &mvp[0][0]);
-
 
     auto color1 = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    uniform_info = &renderer->uniforms.at("uColor");
-    glProgramUniform4f(renderer->shader_program, uniform_info->location, color1[0], color1[1], color1[2], color1[3]);
 
-//    uniform_info = &renderer->uniforms.at("uTexture");
-//    glProgramUniform1i(renderer->shader_program, uniform_info->location, 0);
-
+    renderer->shader.set_uniform("uMvp", mvp);
+    renderer->shader.set_uniform("uColor", color1);
 
     glBindTextureUnit(0, renderer->texture);
-    glUseProgram(renderer->shader_program);
-    glBindVertexArray(renderer->cube_va);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+//    glUseProgram(renderer->shader_program);
+    renderer->shader.bind();
+    renderer->vao.bind();
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, nullptr);
 
 
 }
