@@ -2,9 +2,10 @@
 
 #include "window.hpp"
 
+#include "utils/glm_includes.hpp"
+
 #include <cstdio>
 #include <cassert>
-#include <glm.hpp>
 #include <new>
 
 int create_shader(const char *source, GLenum shader_type) {
@@ -25,25 +26,29 @@ int create_shader(const char *source, GLenum shader_type) {
 }
 
 int create_shader_program() {
-    const char *vertex_shader_source =
-            "#version 330 core\n"
-            "layout (location = 0) in vec3 aPos;\n"
-            "uniform vec4 uRect; // x, y, width, height\n"
-            "uniform vec2 uScreenSize; // screen width, screen height\n"
-            "void main() {\n"
-            "   // Normalize position to [-1, 1] range for rendering\n"
-            "   float nx = 2.0 * (aPos.x * uRect.z + uRect.x) / uScreenSize.x - 1.0;\n"
-            "   float ny = 2.0 * (aPos.y * uRect.w + uRect.y) / uScreenSize.y - 1.0;\n"
-            "   gl_Position = vec4(nx, ny, aPos.z, 1.0);\n"
-            "}\n";
+    const char *vertex_shader_source = R"glsl(
+            #version 420 core
+            uniform mat4 uMvp;
+            layout (location = 0) in vec3 aPos;
+            layout (location = 1) in vec2 aTex;
+            out vec2 texCoord;
+            void main() {
+               vec4 pos = vec4(aPos, 1.0);
+               texCoord = aTex;
+               gl_Position = uMvp * pos;
+            }
+    )glsl";
 
-    const char *fragment_shader_source =
-            "#version 330 core\n"
-            "uniform vec4 uColor;\n"
-            "out vec4 FragColor;\n"
-            "void main() {\n"
-            "   FragColor = uColor;\n"
-            "}\n";
+    const char *fragment_shader_source = R"glsl(
+            #version 420 core
+            uniform vec4 uColor;
+            layout (binding = 0) uniform sampler2D uTexture;
+            in vec2 texCoord;
+            out vec4 FragColor;
+            void main() {
+               FragColor = texture(uTexture, texCoord) * uColor;
+            }
+    )glsl";
 
     int vertex_shader = create_shader(vertex_shader_source, GL_VERTEX_SHADER);
     if (vertex_shader == -1) return -1;
@@ -67,7 +72,6 @@ int create_shader_program() {
 
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
-
 
     return shader_program;
 }
@@ -104,24 +108,102 @@ int create_renderer(struct Renderer *renderer) {
     }
 
 
-    float vertices[] = {
-            0.0f, 0.0f, 0.0f, // bottom left corner
-            1.0f, 0.0f, 0.0f,  // bottom right corner
-            0.0f, 1.0f, 0.0f,  // top left corner
-            1.0f, 1.0f, 0.0f,   // top right corner
+    uint8_t texture_data[] = {
+            255, 0, 0, 255,
+            0, 255, 0, 255,
+            0, 0, 255, 255,
+            255, 255, 0, 255,
+    };
+    glCreateTextures(GL_TEXTURE_2D, 1, &renderer->texture);
+    glTextureStorage2D(renderer->texture, 1, GL_RGB8, 2, 2);
+    glTextureSubImage2D(renderer->texture, 0, 0, 0, 2, 2, GL_RGB, GL_UNSIGNED_BYTE, &texture_data);
+    glTextureParameteri(renderer->texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(renderer->texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(renderer->texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(renderer->texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    struct Vertex {
+        GLfloat x, y, z;     // Position
+        GLfloat u, v;        // Texture coordinates
+    };
+    Vertex vertices[] = {
+            // Front face
+            {-1.0f, -1.0f, 1.0f,  0.0f, 0.0f},
+            {1.0f,  -1.0f, 1.0f,  1.0f, 0.0f},
+            {1.0f,  1.0f,  1.0f,  1.0f, 1.0f},
+            {-1.0f, 1.0f,  1.0f,  0.0f, 1.0f},
+
+            // Back face
+            {-1.0f, -1.0f, -1.0f, 0.0f, 0.0f},
+            {1.0f,  -1.0f, -1.0f, 1.0f, 0.0f},
+            {1.0f,  1.0f,  -1.0f, 1.0f, 1.0f},
+            {-1.0f, 1.0f,  -1.0f, 0.0f, 1.0f},
+
+            // Left face
+            {-1.0f, -1.0f, -1.0f, 0.0f, 0.0f},
+            {-1.0f, -1.0f, 1.0f,  1.0f, 0.0f},
+            {-1.0f, 1.0f,  1.0f,  1.0f, 1.0f},
+            {-1.0f, 1.0f,  -1.0f, 0.0f, 1.0f},
+
+            // Right face
+            {1.0f,  -1.0f, -1.0f, 0.0f, 0.0f},
+            {1.0f,  -1.0f, 1.0f,  1.0f, 0.0f},
+            {1.0f,  1.0f,  1.0f,  1.0f, 1.0f},
+            {1.0f,  1.0f,  -1.0f, 0.0f, 1.0f},
+
+            // Top face
+            {-1.0f, 1.0f,  -1.0f, 0.0f, 0.0f},
+            {-1.0f, 1.0f,  1.0f,  1.0f, 0.0f},
+            {1.0f,  1.0f,  1.0f,  1.0f, 1.0f},
+            {1.0f,  1.0f,  -1.0f, 0.0f, 1.0f},
+
+            // Bottom face
+            {-1.0f, -1.0f, -1.0f, 0.0f, 0.0f},
+            {-1.0f, -1.0f, 1.0f,  1.0f, 0.0f},
+            {1.0f,  -1.0f, 1.0f,  1.0f, 1.0f},
+            {1.0f,  -1.0f, -1.0f, 0.0f, 1.0f},
     };
 
-    uint32_t vertex_buffer;
-    glGenBuffers(1, &vertex_buffer);
+    GLuint indices[] = {
+            // Front face
+            0, 1, 2, 2, 3, 0,
+            // Back face
+            6, 5, 4, 4, 7, 6,
+            // Left face
+            8, 9, 10, 10, 11, 8,
+            // Right face
+            14, 13, 12, 12, 15, 14,
+            // Top face
+            16, 17, 18, 18, 19, 16,
+            // Bottom face
+            22, 21, 20, 20, 23, 22,
+    };
 
-    glGenVertexArrays(1, &renderer->rect_va);
-    glBindVertexArray(renderer->rect_va);
+    GLuint VBO, EBO;
+    // Generate and bind the Vertex Array Object (VAO)
+    glGenVertexArrays(1, &renderer->cube_va);
+    glBindVertexArray(renderer->cube_va);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    // Generate and bind the Vertex Buffer Object (VBO)
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    // Generate and bind the Element Buffer Object (EBO)
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // Define the vertex position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) 0);
     glEnableVertexAttribArray(0);
+
+    // Define the texture coordinate attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) (3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+
+    // Unbind the VAO
+    glBindVertexArray(0);
 
     return 0;
 }
@@ -129,7 +211,7 @@ int create_renderer(struct Renderer *renderer) {
 
 Renderer::~Renderer() {
     glDeleteProgram(this->shader_program);
-    glDeleteVertexArrays(1, &this->rect_va);
+    glDeleteVertexArrays(1, &this->cube_va);
 }
 
 
@@ -140,26 +222,50 @@ void render(
 ) {
     glViewport(0, 0, window->width, window->height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
 
     UniformInfo *uniform_info;
 
-    glm::vec4 rect1 = {50.0f, 50.0f, (float) window->width - 100.0f, (float) window->height - 100.0f};
-    uniform_info = &renderer->uniforms.at("uRect");
+    auto mvp =
+            glm::perspective(
+                    glm::radians(90.0f),
+                    (float) window->width / (float) window->height,
+                    0.1f, 100.0f
+            )
+            *
+            glm::lookAt(
+                    glm::vec3(0.0f, 0.0f, 3.7f),
+                    glm::vec3(0.0f),
+                    glm::vec3(0.0f, 1.0f, 0.0f)
+            )
+            *
+            glm::rotate(
+                    glm::mat4(1.0f),
+                    glm::radians(frame_info->time * 50.0f),
+                    glm::normalize(glm::vec3(0.1f, glm::clamp(frame_info->time * 0.1f, 0.0f, 1.0f), 0.0f))
+            );
+
+    uniform_info = &renderer->uniforms.at("uMvp");
     assert(uniform_info != nullptr);
-    glProgramUniform4f(renderer->shader_program, uniform_info->location, rect1[0], rect1[1], rect1[2], rect1[3]);
+    glProgramUniformMatrix4fv(renderer->shader_program, uniform_info->location, 1, false, &mvp[0][0]);
 
-    uniform_info = &renderer->uniforms.at("uScreenSize");
-    glProgramUniform2f(renderer->shader_program, uniform_info->location, (float) window->width, (float) window->height);
 
-    auto color1 = glm::vec4(0.5f, 0.2f,1.0f,  1.0f);
+    auto color1 = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     uniform_info = &renderer->uniforms.at("uColor");
     glProgramUniform4f(renderer->shader_program, uniform_info->location, color1[0], color1[1], color1[2], color1[3]);
 
+//    uniform_info = &renderer->uniforms.at("uTexture");
+//    glProgramUniform1i(renderer->shader_program, uniform_info->location, 0);
+
+
+    glBindTextureUnit(0, renderer->texture);
     glUseProgram(renderer->shader_program);
-    glBindVertexArray(renderer->rect_va);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(renderer->cube_va);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 
 
 }

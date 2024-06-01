@@ -12,8 +12,11 @@
 struct FrameInfo {
     uint32_t frame_number;
 
-    timespec time;
-    timespec delta_time;
+    timespec ts_time;
+    timespec ts_delta_time;
+
+    float time;
+    float delta;
 };
 
 struct Window {
@@ -33,7 +36,7 @@ struct Window {
 
 int create_window(Window *window);
 
-bool process_events(Window *window);
+bool process_events(Window *window, bool wait);
 
 void update_frame_info(
         struct FrameInfo *frame_info,

@@ -17,10 +17,14 @@ struct UniformInfo {
 struct Renderer {
     NOCOPY(Renderer)
 
-    int shader_program;
+    int32_t shader_program = 0;
     std::map<std::string, UniformInfo> uniforms;
 
-    uint32_t rect_va;
+    uint32_t cube_va = 0;
+
+
+    uint32_t texture = 0;
+
 
     Renderer() = default;
 

@@ -13,10 +13,13 @@ int create_window(Window *const window) {
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+
 
     window->width = 800;
     window->height = 600;
@@ -57,11 +60,18 @@ Window::~Window() {
     SDL_Quit();
 }
 
-bool process_events(Window *const window) {
+bool process_events(Window *const window, bool wait) {
     SDL_Event event;
 
-    if (SDL_WaitEvent(&event) == 0) {
-        return false;
+
+    if (wait) {
+        if (SDL_WaitEvent(&event) == 0) {
+            return false;
+        }
+    } else {
+        if (SDL_PollEvent(&event) == 0) {
+            return true;
+        }
     }
 
     int has_event = 1;
@@ -109,12 +119,20 @@ void update_frame_info(
             .tv_nsec = current_time.tv_nsec - start_time.tv_nsec
     };
     struct timespec delta_time = {
-            .tv_sec = time_since_start.tv_sec - frame_info->time.tv_sec,
-            .tv_nsec = time_since_start.tv_nsec - frame_info->time.tv_nsec
+            .tv_sec = time_since_start.tv_sec - frame_info->ts_time.tv_sec,
+            .tv_nsec = time_since_start.tv_nsec - frame_info->ts_time.tv_nsec
     };
 
-    frame_info->time = time_since_start;
-    frame_info->delta_time = delta_time;
+    frame_info->ts_time = time_since_start;
+    frame_info->ts_delta_time = delta_time;
+
+
+    frame_info->time = static_cast<float>(
+            static_cast<double>(time_since_start.tv_sec) + time_since_start.tv_nsec / 1.0e9
+    );
+    frame_info->delta = static_cast<float>(
+            static_cast<double>(delta_time.tv_sec) + delta_time.tv_nsec / 1.0e9
+    );
 
 //    printf("Frame number: %u\n", frame_info->frame_number);
 //    printf("Time since start: %llu s %lu ns\n", frame_info->time.tv_sec, frame_info->time.tv_nsec);
