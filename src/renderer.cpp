@@ -63,13 +63,8 @@ int create_renderer(Renderer *renderer) {
             255, 255, 0, 255,
             0, 0, 0, 255,
     };
-    glCreateTextures(GL_TEXTURE_2D, 1, &renderer->texture);
-    glTextureStorage2D(renderer->texture, 1, GL_RGBA8, 2, 2);
-    glTextureSubImage2D(renderer->texture, 0, 0, 0, 2, 2, GL_RGBA, GL_UNSIGNED_BYTE, &texture_data);
-    glTextureParameteri(renderer->texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(renderer->texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(renderer->texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(renderer->texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    create_texture(&renderer->texture, GL_RGBA8, 2, 2);
+    renderer->texture.upload(texture_data);
 
 
     struct Vertex {
@@ -170,8 +165,7 @@ void render(
     renderer->shader.set_uniform("uMvp", mvp);
     renderer->shader.set_uniform("uColor", color1);
 
-    glBindTextureUnit(0, renderer->texture);
-//    glUseProgram(renderer->shader_program);
+    renderer->texture.bind(0);
     renderer->shader.bind();
     renderer->vao.bind();
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, nullptr);

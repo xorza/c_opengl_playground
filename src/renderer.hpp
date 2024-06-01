@@ -2,6 +2,7 @@
 
 #include "ogl/vao.hpp"
 #include "ogl/shader.hpp"
+#include "ogl/texture.hpp"
 
 #include "utils/gl_includes.hpp"
 #include "utils/nocopy.hpp"
@@ -17,8 +18,8 @@ struct Renderer {
     Shader vertex_shader;
     ShaderProgram shader;
     Vao vao;
+    Texture texture;
 
-    uint32_t texture = 0;
 
 
     Renderer() = default;
