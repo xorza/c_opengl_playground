@@ -20,6 +20,9 @@ int create_window(Window *const window) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
 
     window->width = 800;
     window->height = 600;

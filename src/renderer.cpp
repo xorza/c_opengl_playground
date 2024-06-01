@@ -8,22 +8,6 @@
 #include <cassert>
 #include <new>
 
-int create_shader1(const char *source, GLenum shader_type) {
-    int shader = glCreateShader(shader_type);
-    glShaderSource(shader, 1, &source, nullptr);
-    glCompileShader(shader);
-
-    int success = 1;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char info_log[512];
-        glGetShaderInfoLog(shader, 512, nullptr, info_log);
-        fprintf(stderr, "Shader compilation failed: %s\n", info_log);
-        return -1;
-    }
-
-    return shader;
-}
 
 int create_renderer(Renderer *renderer) {
     new(renderer) Renderer{};
@@ -52,9 +36,9 @@ int create_renderer(Renderer *renderer) {
             }
     )glsl";
     create_shader(&renderer->vertex_shader, vertex_shader_source, GL_VERTEX_SHADER);
-    Shader fragment_shader1;
-    create_shader(&fragment_shader1, fragment_shader_source, GL_FRAGMENT_SHADER);
-    create_shader_program(&renderer->shader, &renderer->vertex_shader, &fragment_shader1);
+    Shader fragment_shader;
+    create_shader(&fragment_shader, fragment_shader_source, GL_FRAGMENT_SHADER);
+    create_shader_program(&renderer->shader, &renderer->vertex_shader, &fragment_shader);
 
 
     uint8_t texture_data[] = {
@@ -103,7 +87,6 @@ int create_renderer(Renderer *renderer) {
             {1.0f,  -1.0f, 1.0f,  1.0f, 1.0f},
             {1.0f,  -1.0f, -1.0f, 0.0f, 1.0f},
     };
-
     uint16_t indices[] = {
             0, 1, 2, 2, 3, 0,
             6, 5, 4, 4, 7, 6,
@@ -112,7 +95,6 @@ int create_renderer(Renderer *renderer) {
             16, 17, 18, 18, 19, 16,
             22, 21, 20, 20, 23, 22,
     };
-
     create_vao(&renderer->vao);
     renderer->vao.attach_vbo(vertices, sizeof(vertices) / sizeof(Vertex));
     renderer->vao.attach_ebo(indices, sizeof(indices) / sizeof(uint16_t));
